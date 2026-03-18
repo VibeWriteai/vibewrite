@@ -5,7 +5,7 @@ const FREE_LIMIT = 3;
 const STORAGE_KEY = "captionlab_usage";
 
 // ── API key is stored safely in Vercel Environment Variables (never in code)
-const HF_API_KEY = process.env.REACT_APP_HF_API_KEY;
+const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY;
 
 // ── Paste your Google Sheet webhook URL here (instructions in README.md)
 const GOOGLE_SHEET_WEBHOOK = "";
@@ -264,20 +264,21 @@ export default function App() {
 
     try {
       const prompt = buildPrompt(mode, finalTopic, style, platform);
-      const res = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2", {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${HF_API_KEY}`,
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          inputs: `<s>[INST] ${prompt} [/INST]`,
-          parameters: { max_new_tokens: 800, temperature: 0.7, return_full_text: false },
+          model: "llama3-8b-8192",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
         }),
       });
       const data = await res.json();
-      const text = Array.isArray(data) ? data[0]?.generated_text || "" : data?.generated_text || data?.error || "";
-      if (!text || data.error) throw new Error(data.error || "Empty response");
+      const text = data.choices?.[0]?.message?.content || "";
+      if (!text) throw new Error("Empty response");
       setResult(text);
       setHistory(prev => [{ mode, topic: finalTopic, style, platform, result: text }, ...prev].slice(0, 8));
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior:"smooth", block:"start" }), 100);
