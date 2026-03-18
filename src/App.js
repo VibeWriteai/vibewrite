@@ -5,7 +5,7 @@ const FREE_LIMIT = 3;
 const STORAGE_KEY = "captionlab_usage";
 
 // ── API key is stored safely in Vercel Environment Variables (never in code)
-const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // ── Paste your Google Sheet webhook URL here (instructions in README.md)
 const GOOGLE_SHEET_WEBHOOK = "";
