@@ -5,7 +5,7 @@ const FREE_LIMIT = 3;
 const STORAGE_KEY = "captionlab_usage";
 
 // ── API key is stored safely in Vercel Environment Variables (never in code)
-const ANTHROPIC_API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+const HF_API_KEY = process.env.REACT_APP_HF_API_KEY;
 
 // ── Paste your Google Sheet webhook URL here (instructions in README.md)
 const GOOGLE_SHEET_WEBHOOK = "";
@@ -263,23 +263,21 @@ export default function App() {
     saveUsage(newUsage);
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const prompt = buildPrompt(mode, finalTopic, style, platform);
+      const res = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
+          "Authorization": `Bearer ${HF_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{ role: "user", content: buildPrompt(mode, finalTopic, style, platform) }],
+          inputs: `<s>[INST] ${prompt} [/INST]`,
+          parameters: { max_new_tokens: 800, temperature: 0.7, return_full_text: false },
         }),
       });
       const data = await res.json();
-      const text = data.content?.map(b => b.text || "").join("\n") || "";
-      if (!text) throw new Error("Empty response");
+      const text = Array.isArray(data) ? data[0]?.generated_text || "" : data?.generated_text || data?.error || "";
+      if (!text || data.error) throw new Error(data.error || "Empty response");
       setResult(text);
       setHistory(prev => [{ mode, topic: finalTopic, style, platform, result: text }, ...prev].slice(0, 8));
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior:"smooth", block:"start" }), 100);
